@@ -71,30 +71,38 @@ that's heavily influenced by the [PyKEEN](https://github.com/pykeen/pykeen/)
 training and evaluation pipeline:
 
 ```python
+import os
 from chemicalx import pipeline
 from chemicalx.models import DeepSynergy
 from chemicalx.data import DrugCombDB
+import torch
+from torch.utils.data import DataLoader
 
-model = DeepSynergy(context_channels=112, drug_channels=256)
+# Set up parameters
+context_channels = 112
+drug_channels = 256
+batch_size = 5120
+epochs = 100
+save_path = os.path.abspath(os.path.join(os.getcwd(), "~/test_results/"))
+
+# Initialize model and dataset
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+model = DeepSynergy(context_channels=context_channels, drug_channels=drug_channels).to(device)
 dataset = DrugCombDB()
 
+# Create DataLoader
+train_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=4)
+
+# Train model
 results = pipeline(
-    dataset=dataset,
+    dataset=train_loader,
     model=model,
-    # Data arguments
-    batch_size=5120,
-    context_features=True,
-    drug_features=True,
-    drug_molecules=False,
-    # Training arguments
-    epochs=100,
+    epochs=epochs,
 )
 
-# Outputs information about the AUC-ROC, etc. to the console.
+# Summarize results and save model
 results.summarize()
-
-# Save the model, losses, evaluation, and other metadata.
-results.save("~/test_results/")
+results.save(save_path)
 ```
 
 --------------------------------------------------------------------------------
